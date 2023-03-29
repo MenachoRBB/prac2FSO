@@ -252,7 +252,8 @@ int mou_fantasma(void)
   if (nd == 0)				/* si no pot continuar, */
   	f1.d = (f1.d + 2) % 4;		/* canvia totalment de sentit */
   else
-  { if (nd == 1)			/* si nomes pot en una direccio */
+  { 
+    if (nd == 1)			/* si nomes pot en una direccio */
   	f1.d = vd[0];			/* li assigna aquesta */
     else				/* altrament */
     	f1.d = vd[rand() % nd];		/* segueix una dir. aleatoria */
@@ -301,9 +302,9 @@ int mou_menjacocos(void)
     win_escricar(mc.f,mc.c,'0',NO_INV);		/* redibuixa menjacocos */
     if (seg.a == '.')
     {
-	cocos--;
-	sprintf(strin,"Cocos: %d", cocos); win_escristr(strin);
-	if (cocos == 0) ret = 1;
+      cocos--;
+      sprintf(strin,"Cocos: %d", cocos); win_escristr(strin);
+      if (cocos == 0) ret = 1;
     }
   }
   return(ret);
