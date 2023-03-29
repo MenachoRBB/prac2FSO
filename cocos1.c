@@ -77,7 +77,7 @@ typedef struct {		/* per un objecte (menjacocos o fantasma) */
 
 /* variables globals */
 pthread_t tid[MAX_THREADS]; /* taula d'identificadors dels threads */
-int fi1, fi2, ret;         /* finalització del joc*/
+int fi1, fi2;         /* finalització del joc*/
 int n_fil1, n_col;		/* dimensions del camp de joc */
 char tauler[70];		/* nom del fitxer amb el laberint de joc */
 char c_req;			    /* caracter de pared del laberint */
