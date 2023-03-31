@@ -64,6 +64,7 @@
 #define MIN_COL 10
 #define MAX_COL 80
 #define MAX_THREADS 10
+#define MAX_GHOSTS 9
 #define LONGMISS	65
 
 				/* definir estructures d'informacio */
@@ -84,7 +85,8 @@ char tauler[70];		/* nom del fitxer amb el laberint de joc */
 char c_req;			    /* caracter de pared del laberint */
 
 objecte mc;      		/* informacio del menjacocos */
-objecte f1;			    /* informacio del fantasma 1 */
+objecte fantasmes[MAX_GHOSTS];			    /* informacio dels fantasmes */
+int total_fantasmes;
 
 int df[] = {-1, 0, 1, 0};	/* moviments de les 4 direccions possibles */
 int dc[] = {0, -1, 0, 1};	/* dalt, esquerra, baix, dreta */
@@ -105,8 +107,8 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; /* crea un sem. Global*/
 /* tinent al SO (segons comentaris al principi del programa).		    */
 void carrega_parametres(const char *nom_fit)
 {
+  total_fantasmes = 0;
   FILE *fit;
-
   fit = fopen(nom_fit,"rt");		/* intenta obrir fitxer */
   if (fit == NULL)
   {	
@@ -148,22 +150,34 @@ void carrega_parametres(const char *nom_fit)
     exit(4);
   }
 
-  if (!feof(fit)) fscanf(fit,"%d %d %d %f\n",&f1.f,&f1.c,&f1.d,&f1.r);
-  else {
+  
+  if (!feof(fit)) 
+  {
+    while(!feof(fit)){
+      fscanf(fit,"%d %d %d %f\n",&fantasmes[total_fantasmes].f,&fantasmes[total_fantasmes].c,&fantasmes[total_fantasmes].d,&fantasmes[total_fantasmes].r);
+      total_fantasmes++;
+    }
+    total_fantasmes--;
+  }
+  else 
+  {
     fprintf(stderr,"Falten parametres al fitxer \'%s\'\n",nom_fit);
     fclose(fit);
     exit(2);
 	}
-  if ((f1.f < 1) || (f1.f > n_fil1-3) ||
-	(f1.c < 1) || (f1.c > n_col-2) ||
-	(f1.d < 0) || (f1.d > 3))
-  {
-    fprintf(stderr,"Error: parametres fantasma 1 incorrectes:\n");
-    fprintf(stderr,"\t1 =< f1.f (%d) =< n_fil1-3 (%d)\n",f1.f,(n_fil1-3));
-    fprintf(stderr,"\t1 =< f1.c (%d) =< n_col-2 (%d)\n",f1.c,(n_col-2));
-    fprintf(stderr,"\t0 =< f1.d (%d) =< 3\n",f1.d);
-    fclose(fit);
-    exit(5);
+  printf("fantasmes totals = %d\n", total_fantasmes);
+  for(int i = 0; i<=total_fantasmes; i++){
+    if ((fantasmes[i].f < 1) || (fantasmes[i].f > n_fil1-3) ||
+    (fantasmes[i].c < 1) || (fantasmes[i].c > n_col-2) ||
+    (fantasmes[i].d < 0) || (fantasmes[i].d > 3))
+    {
+      fprintf(stderr,"Error: parametres fantasma %d incorrectes:\n",i+1);
+      fprintf(stderr,"\t1 =< fantasma[%d].f (%d) =< n_fil1-3 (%d)\n",i,fantasmes[i].f,(n_fil1-3));
+      fprintf(stderr,"\t1 =< fantasma[%d].c (%d) =< n_col-2 (%d)\n",i,fantasmes[i].c,(n_col-2));
+      fprintf(stderr,"\t0 =< fantasma[%d].d (%d) =< 3\n",i,fantasmes[i].d);
+      fclose(fit);
+      exit(5);
+    }
   }
   fclose(fit);			/* fitxer carregat: tot OK! */
   printf("Joc del MenjaCocos\n\tTecles: \'%c\', \'%c\', \'%c\', \'%c\', RETURN-> sortir\n",
@@ -188,8 +202,8 @@ void inicialitza_joc(void)
     if (mc.a == c_req) r = -6;		/* error: menjacocos sobre pared */
     else
     {
-       f1.a = win_quincar(f1.f,f1.c);
-       if (f1.a == c_req) r = -7;	/* error: fantasma sobre pared */
+       fantasmes[0].a = win_quincar(fantasmes[0].f,fantasmes[0].c);
+       if (fantasmes[0].a == c_req) r = -7;	/* error: fantasma sobre pared */
        else
        {
 	cocos = 0;			/* compta el numero total de cocos */
@@ -198,7 +212,7 @@ void inicialitza_joc(void)
 	    if (win_quincar(i,j)=='.') cocos++;
 	    
         win_escricar(mc.f,mc.c,'0',NO_INV);
-	win_escricar(f1.f,f1.c,'1',NO_INV);
+	win_escricar(fantasmes[0].f,fantasmes[0].c,'1',NO_INV);
 
         if (mc.a == '.') cocos--;	/* menja primer coco */
 
@@ -229,7 +243,7 @@ void inicialitza_joc(void)
 /* captura al menjacocos, 0 altrament					*/
 void * mou_fantasma(void * index)
 {
-
+  int i = (intptr_t) index;
   objecte seg;
   //int ret;
   int k, vk, nd, vd[3];
@@ -238,11 +252,11 @@ void * mou_fantasma(void * index)
   //ret = 0; 
     for (k=-1; k<=1; k++)		/* provar direccio actual i dir. veines */
     {
-      vk = (f1.d + k) % 4;		/* direccio veina */
+      vk = (fantasmes[i].d + k) % 4;		/* direccio veina */
       if (vk < 0) vk += 4;		/* corregeix negatius */
       pthread_mutex_lock(&mutex);
-      seg.f = f1.f + df[vk]; /* calcular posicio en la nova dir.*/
-      seg.c = f1.c + dc[vk];
+      seg.f = fantasmes[i].f + df[vk]; /* calcular posicio en la nova dir.*/
+      seg.c = fantasmes[i].c + dc[vk];
       pthread_mutex_unlock(&mutex);
       pthread_mutex_lock(&mutex);
       seg.a = win_quincar(seg.f,seg.c);	/* calcular caracter seguent posicio */
@@ -258,7 +272,7 @@ void * mou_fantasma(void * index)
     if (nd == 0)				/* si no pot continuar, */
     {
       pthread_mutex_lock(&mutex);
-      f1.d = (f1.d + 2) % 4;		/* canvia totalment de sentit */
+      fantasmes[i].d = (fantasmes[i].d + 2) % 4;		/* canvia totalment de sentit */
       pthread_mutex_unlock(&mutex);
     }
     else
@@ -266,29 +280,29 @@ void * mou_fantasma(void * index)
       if (nd == 1)			/* si nomes pot en una direccio */
       {
         pthread_mutex_lock(&mutex);
-        f1.d = vd[0];			/* li assigna aquesta */
+        fantasmes[i].d = vd[0];			/* li assigna aquesta */
         pthread_mutex_unlock(&mutex);
       }
       else				/* altrament */
       {
         pthread_mutex_lock(&mutex);
-        f1.d = vd[rand() % nd];		/* segueix una dir. aleatoria */
+        fantasmes[i].d = vd[rand() % nd];		/* segueix una dir. aleatoria */
         pthread_mutex_unlock(&mutex);
       }
 
       pthread_mutex_lock(&mutex);
-      seg.f = f1.f + df[f1.d];  /* calcular seguent posicio final */
-      seg.c = f1.c + dc[f1.d];
+      seg.f = fantasmes[i].f + df[fantasmes[i].d];  /* calcular seguent posicio final */
+      seg.c = fantasmes[i].c + dc[fantasmes[i].d];
       pthread_mutex_unlock(&mutex);
       pthread_mutex_lock(&mutex);
       seg.a = win_quincar(seg.f,seg.c);	/* calcular caracter seguent posicio */
-      win_escricar(f1.f,f1.c,f1.a,NO_INV);	/* esborra posicio anterior */
+      win_escricar(fantasmes[i].f,fantasmes[i].c,fantasmes[i].a,NO_INV);	/* esborra posicio anterior */
       pthread_mutex_unlock(&mutex);
-      f1.f = seg.f; f1.c = seg.c; f1.a = seg.a;	/* actualitza posicio */
+      fantasmes[i].f = seg.f; fantasmes[i].c = seg.c; fantasmes[i].a = seg.a;	/* actualitza posicio */
       pthread_mutex_lock(&mutex);
-      win_escricar(f1.f,f1.c,'1',NO_INV);		/* redibuixa fantasma */
+      win_escricar(fantasmes[i].f,fantasmes[i].c,i+'0',NO_INV);		/* redibuixa fantasma */
       pthread_mutex_unlock(&mutex);
-      if (f1.a == '0') 
+      if (fantasmes[i].a == '0') 
       {
         pthread_mutex_lock(&mutex);
         fi2 = 1;		/* ha capturat menjacocos */
@@ -312,7 +326,7 @@ void * mou_fantasma(void * index)
 /* els cocos, i 0 altrament */
 void * mou_menjacocos(void * null)
 {
-  char string[12];
+  //char string[12];
   objecte seg;
   int tec;//, ret;
   
@@ -380,7 +394,7 @@ void * mou_menjacocos(void * null)
 /* programa principal				    */
 int main(int n_args, const char *ll_args[])
 {
-  int rc, p, n, n_fan, temps, min, seg;//, status;		/* variables locals */
+  int rc, p, n, temps, min, seg;//, status;		/* variables locals */
 
   srand(getpid());		/* inicialitza numeros aleatoris */
 
@@ -399,14 +413,15 @@ int main(int n_args, const char *ll_args[])
   {
     inicialitza_joc();
     pthread_mutex_init(&mutex, NULL); /* inicialitza el semafor */
-    p = 0; n = 0; n_fan = 0; 
+    p = 0; n = 0;
     if(pthread_create(&tid[n], NULL, mou_menjacocos, NULL) == 0)
       n++;
 
-    if(pthread_create(&tid[n], NULL, mou_fantasma, (void*)(char) n_fan+'0') == 0)
-    {
-      n++;
-      n_fan++;
+    for(int i = 0; i<=total_fantasmes; i++){
+      if(pthread_create(&tid[n], NULL, mou_fantasma, (void*)(intptr_t) i+1) == 0)
+      {
+        n++;
+      }
     }
 
 
