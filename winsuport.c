@@ -89,7 +89,8 @@ void win_escricar(int f, int c, char car, unsigned int invers)
   chtype wc;
 
   if (hi_ha_win)
-  { wc = car;
+  { 
+    wc = car;
     if (invers) wc |= A_REVERSE;
     mvwaddch(win,f,c,wc);
     wrefresh(win);
@@ -105,10 +106,11 @@ char win_quincar(int f, int c)
 
   result = 0;			/* resultat per defecte */
   if (hi_ha_win)
-  { wc = mvwinch(win,f,c);		/* captura caracter */
+  { 
+    wc = mvwinch(win,f,c);		/* captura caracter */
     result = wc & A_CHARTEXT;		/* elimina atributs */
     if ((result < ' ') || (result > '~')) /* filtra valors fora del rang */
-	result = ' ';	/* retorna blanc si no es un caracter ASCII */
+	    result = ' ';	/* retorna blanc si no es un caracter ASCII */
   }
   return(result);
 }

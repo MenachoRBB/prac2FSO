@@ -93,6 +93,8 @@ int cocos;			/* numero restant de cocos per menjar */
 int retard;		    /* valor del retard de moviment, en mil.lisegons */
 char strin[LONGMISS];			/* variable per a generar missatges de text */
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; /* crea un sem. Global*/
+
 
 
 
@@ -238,33 +240,59 @@ void * mou_fantasma(void * index)
     {
       vk = (f1.d + k) % 4;		/* direccio veina */
       if (vk < 0) vk += 4;		/* corregeix negatius */
+      pthread_mutex_lock(&mutex);
       seg.f = f1.f + df[vk]; /* calcular posicio en la nova dir.*/
       seg.c = f1.c + dc[vk];
+      pthread_mutex_unlock(&mutex);
+      pthread_mutex_lock(&mutex);
       seg.a = win_quincar(seg.f,seg.c);	/* calcular caracter seguent posicio */
+      pthread_mutex_unlock(&mutex);
       if ((seg.a==' ') || (seg.a=='.') || (seg.a=='0'))
       { 
         vd[nd] = vk;			/* memoritza com a direccio possible */
+        pthread_mutex_lock(&mutex);
         nd++;
+        pthread_mutex_unlock(&mutex);
       }
     }
     if (nd == 0)				/* si no pot continuar, */
+    {
+      pthread_mutex_lock(&mutex);
       f1.d = (f1.d + 2) % 4;		/* canvia totalment de sentit */
+      pthread_mutex_unlock(&mutex);
+    }
     else
     { 
       if (nd == 1)			/* si nomes pot en una direccio */
+      {
+        pthread_mutex_lock(&mutex);
         f1.d = vd[0];			/* li assigna aquesta */
+        pthread_mutex_unlock(&mutex);
+      }
       else				/* altrament */
+      {
+        pthread_mutex_lock(&mutex);
         f1.d = vd[rand() % nd];		/* segueix una dir. aleatoria */
+        pthread_mutex_unlock(&mutex);
+      }
 
+      pthread_mutex_lock(&mutex);
       seg.f = f1.f + df[f1.d];  /* calcular seguent posicio final */
       seg.c = f1.c + dc[f1.d];
+      pthread_mutex_unlock(&mutex);
+      pthread_mutex_lock(&mutex);
       seg.a = win_quincar(seg.f,seg.c);	/* calcular caracter seguent posicio */
       win_escricar(f1.f,f1.c,f1.a,NO_INV);	/* esborra posicio anterior */
+      pthread_mutex_unlock(&mutex);
       f1.f = seg.f; f1.c = seg.c; f1.a = seg.a;	/* actualitza posicio */
+      pthread_mutex_lock(&mutex);
       win_escricar(f1.f,f1.c,'1',NO_INV);		/* redibuixa fantasma */
+      pthread_mutex_unlock(&mutex);
       if (f1.a == '0') 
       {
+        pthread_mutex_lock(&mutex);
         fi2 = 1;		/* ha capturat menjacocos */
+        pthread_mutex_unlock(&mutex);
         //intptr_t i = (intptr_t) fi2;
         pthread_exit((void *)(intptr_t) fi2);
       }
@@ -284,7 +312,7 @@ void * mou_fantasma(void * index)
 /* els cocos, i 0 altrament */
 void * mou_menjacocos(void * null)
 {
-  char strin[12];
+  char string[12];
   objecte seg;
   int tec;//, ret;
   
@@ -306,19 +334,34 @@ void * mou_menjacocos(void * null)
 
     seg.f = mc.f + df[mc.d];	/* calcular seguent posicio */
     seg.c = mc.c + dc[mc.d];
+    pthread_mutex_lock(&mutex);
     seg.a = win_quincar(seg.f,seg.c);	/* calcular caracter seguent posicio */
+    pthread_mutex_unlock(&mutex);
     if ((seg.a == ' ') || (seg.a == '.'))
     {
+      pthread_mutex_lock(&mutex);
       win_escricar(mc.f,mc.c,' ',NO_INV);		/* esborra posicio anterior */
+      pthread_mutex_unlock(&mutex);
       mc.f = seg.f; mc.c = seg.c;			/* actualitza posicio */
+      pthread_mutex_lock(&mutex);
       win_escricar(mc.f,mc.c,'0',NO_INV);		/* redibuixa menjacocos */
+      pthread_mutex_unlock(&mutex);
       if (seg.a == '.')
       {
+        pthread_mutex_lock(&mutex);
         cocos--;
-        sprintf(strin,"Cocos: %d", cocos); win_escristr(strin);
+        pthread_mutex_unlock(&mutex);
+        /*pthread_mutex_lock(&mutex);
+        sprintf(string,"Cocos: %d", cocos); 
+        pthread_mutex_unlock(&mutex);
+        pthread_mutex_lock(&mutex);
+        win_escristr(strin);
+        pthread_mutex_unlock(&mutex);*/
         if (cocos == 0) 
         {
+          pthread_mutex_lock(&mutex);
           fi1 = 1;
+          pthread_mutex_unlock(&mutex);
           pthread_exit((void *)(intptr_t) fi1);
         }
       }
@@ -355,6 +398,7 @@ int main(int n_args, const char *ll_args[])
   if (rc == 0)		/* si aconsegueix accedir a l'entorn CURSES */
   {
     inicialitza_joc();
+    pthread_mutex_init(&mutex, NULL); /* inicialitza el semafor */
     p = 0; n = 0; n_fan = 0; 
     if(pthread_create(&tid[n], NULL, mou_menjacocos, NULL) == 0)
       n++;
@@ -380,21 +424,24 @@ int main(int n_args, const char *ll_args[])
       temps = temps + retard;
       min=(temps / 1000) / 60;
 	    seg=(temps / 1000) % 60;
+      pthread_mutex_lock(&mutex);
       if(seg<10){
         sprintf(strin,
           "La duracio de la partida han sigut %d:0%d\n",
           min,seg);
         win_escristr(strin);
+        pthread_mutex_unlock(&mutex);
       }else{
         sprintf(strin,
           "La duracio de la partida han sigut %d:%d\n",
           min,seg);
         win_escristr(strin);	
+        pthread_mutex_unlock(&mutex);
       }
     } while (!fi1 && !fi2);
-
+    pthread_mutex_destroy(&mutex); /* destrueix el semafor */
     win_fi();
-
+    
     if (fi1 == -1) printf("S'ha aturat el joc amb tecla RETURN!\n");
     else 
     { 
