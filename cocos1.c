@@ -227,7 +227,7 @@ void inicialitza_joc(void)
 /* captura al menjacocos, 0 altrament					*/
 void * mou_fantasma(void * index)
 {
-
+  int status;
   objecte seg;
   //int ret;
   int k, vk, nd, vd[3];
@@ -266,6 +266,7 @@ void * mou_fantasma(void * index)
       {
         fi2 = 1;		/* ha capturat menjacocos */
         //intptr_t i = (intptr_t) fi2;
+        pthread_join(tid[1], (void **) &status);
         pthread_exit((void *)(intptr_t) fi2);
       }
     }
@@ -284,6 +285,7 @@ void * mou_fantasma(void * index)
 /* els cocos, i 0 altrament */
 void * mou_menjacocos(void * null)
 {
+  int status;
   char strin[12];
   objecte seg;
   int tec;//, ret;
@@ -319,6 +321,7 @@ void * mou_menjacocos(void * null)
         if (cocos == 0) 
         {
           fi1 = 1;
+           pthread_join(tid[0], (void **) &status);
           pthread_exit((void *)(intptr_t) fi1);
         }
       }
@@ -337,7 +340,7 @@ void * mou_menjacocos(void * null)
 /* programa principal				    */
 int main(int n_args, const char *ll_args[])
 {
-  int rc, p, n, n_fan, temps, min, seg;//, status;		/* variables locals */
+  int rc, p, n, n_fan, temps, min, seg, status;		/* variables locals */
 
   srand(getpid());		/* inicialitza numeros aleatoris */
 
