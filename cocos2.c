@@ -254,52 +254,38 @@ void * mou_fantasma(void * index)
     {
       vk = (fantasmes[i].d + k) % 4;		/* direccio veina */
       if (vk < 0) vk += 4;		/* corregeix negatius */
-      pthread_mutex_lock(&mutex);
       seg.f = fantasmes[i].f + df[vk]; /* calcular posicio en la nova dir.*/
       seg.c = fantasmes[i].c + dc[vk];
-      pthread_mutex_unlock(&mutex);
       pthread_mutex_lock(&mutex);
       seg.a = win_quincar(seg.f,seg.c);	/* calcular caracter seguent posicio */
       pthread_mutex_unlock(&mutex);
       if ((seg.a==' ') || (seg.a=='.') || (seg.a=='0'))
       { 
         vd[nd] = vk;			/* memoritza com a direccio possible */
-        pthread_mutex_lock(&mutex);
         nd++;
-        pthread_mutex_unlock(&mutex);
       }
     }
     if (nd == 0)				/* si no pot continuar, */
     {
-      pthread_mutex_lock(&mutex);
       fantasmes[i].d = (fantasmes[i].d + 2) % 4;		/* canvia totalment de sentit */
-      pthread_mutex_unlock(&mutex);
     }
     else
     { 
       if (nd == 1)			/* si nomes pot en una direccio */
       {
-        pthread_mutex_lock(&mutex);
         fantasmes[i].d = vd[0];			/* li assigna aquesta */
-        pthread_mutex_unlock(&mutex);
       }
       else				/* altrament */
       {
-        pthread_mutex_lock(&mutex);
         fantasmes[i].d = vd[rand() % nd];		/* segueix una dir. aleatoria */
-        pthread_mutex_unlock(&mutex);
       }
 
-      pthread_mutex_lock(&mutex);
       seg.f = fantasmes[i].f + df[fantasmes[i].d];  /* calcular seguent posicio final */
       seg.c = fantasmes[i].c + dc[fantasmes[i].d];
-      pthread_mutex_unlock(&mutex);
       pthread_mutex_lock(&mutex);
       seg.a = win_quincar(seg.f,seg.c);	/* calcular caracter seguent posicio */
       win_escricar(fantasmes[i].f,fantasmes[i].c,fantasmes[i].a,NO_INV);	/* esborra posicio anterior */
-      pthread_mutex_unlock(&mutex);
       fantasmes[i].f = seg.f; fantasmes[i].c = seg.c; fantasmes[i].a = seg.a;	/* actualitza posicio */
-      pthread_mutex_lock(&mutex);
       win_escricar(fantasmes[i].f,fantasmes[i].c,i+'0',NO_INV);		/* redibuixa fantasma */
       pthread_mutex_unlock(&mutex);
       if (fantasmes[i].a == '0') 
@@ -308,7 +294,6 @@ void * mou_fantasma(void * index)
         fi2 = 1;		/* ha capturat menjacocos */
         pthread_mutex_unlock(&mutex);
         //intptr_t i = (intptr_t) fi2;
-        pthread_exit((void *)(intptr_t) fi2);
       }
     }
     win_retard(retard);
@@ -327,13 +312,16 @@ void * mou_fantasma(void * index)
 void * mou_menjacocos(void * null)
 {
   //char string[12];
+  int status;
   objecte seg;
   int tec;//, ret;
   
   //ret = 0;
   do
   {
+    pthread_mutex_lock(&mutex);
     tec = win_gettec();
+    pthread_mutex_unlock(&mutex);
     if (tec != 0)
     {
       switch (tec)		/* modificar direccio menjacocos segons tecla */
@@ -376,7 +364,6 @@ void * mou_menjacocos(void * null)
           pthread_mutex_lock(&mutex);
           fi1 = 1;
           pthread_mutex_unlock(&mutex);
-          pthread_exit((void *)(intptr_t) fi1);
         }
       }
     }
@@ -439,23 +426,24 @@ int main(int n_args, const char *ll_args[])
       temps = temps + retard;
       min=(temps / 1000) / 60;
 	    seg=(temps / 1000) % 60;
+ 
       pthread_mutex_lock(&mutex);
-      if(seg<10){
-        sprintf(strin,
-          "La duracio de la partida han sigut %d:0%d\n",
-          min,seg);
-        win_escristr(strin);
-        pthread_mutex_unlock(&mutex);
-      }else{
-        sprintf(strin,
-          "La duracio de la partida han sigut %d:%d\n",
-          min,seg);
-        win_escristr(strin);	
-        pthread_mutex_unlock(&mutex);
-      }
+      sprintf(strin,
+          "La duracio de la partida han sigut %d:%d\n, cocos: %d",
+          min,seg,cocos);
+      win_escristr(strin);	
+      pthread_mutex_unlock(&mutex);
+      
     } while (!fi1 && !fi2);
+
+    for (int i=0;i<n;i++){
+      pthread_join(tid[i], (void **) &status);
+    }
+
     pthread_mutex_destroy(&mutex); /* destrueix el semafor */
+
     win_fi();
+
     
     if (fi1 == -1) printf("S'ha aturat el joc amb tecla RETURN!\n");
     else 

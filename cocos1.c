@@ -266,7 +266,7 @@ void * mou_fantasma(void * index)
       {
         fi2 = 1;		/* ha capturat menjacocos */
         //intptr_t i = (intptr_t) fi2;
-        pthread_join(tid[1], (void **) &status);
+      
         pthread_exit((void *)(intptr_t) fi2);
       }
     }
@@ -321,7 +321,7 @@ void * mou_menjacocos(void * null)
         if (cocos == 0) 
         {
           fi1 = 1;
-           pthread_join(tid[0], (void **) &status);
+          pthread_join(tid[0], (void **) &status);
           pthread_exit((void *)(intptr_t) fi1);
         }
       }
@@ -383,18 +383,16 @@ int main(int n_args, const char *ll_args[])
       temps = temps + retard;
       min=(temps / 1000) / 60;
 	    seg=(temps / 1000) % 60;
-      if(seg<10){
-        sprintf(strin,
-          "La duracio de la partida han sigut %d:0%d\n",
-          min,seg);
-        win_escristr(strin);
-      }else{
-        sprintf(strin,
-          "La duracio de la partida han sigut %d:%d\n",
-          min,seg);
-        win_escristr(strin);	
-      }
+ 
+      pthread_mutex_lock(&mutex);
+      sprintf(strin,
+          "La duracio de la partida han sigut %d:%d\n, cocos: %d",
+          min,seg,cocos);
+      win_escristr(strin);	
+      pthread_mutex_unlock(&mutex);
+      
     } while (!fi1 && !fi2);
+
 
     win_fi();
 
