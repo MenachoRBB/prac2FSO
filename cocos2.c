@@ -157,7 +157,6 @@ void carrega_parametres(const char *nom_fit)
       fscanf(fit,"%d %d %d %f\n",&fantasmes[total_fantasmes].f,&fantasmes[total_fantasmes].c,&fantasmes[total_fantasmes].d,&fantasmes[total_fantasmes].r);
       total_fantasmes++;
     }
-    total_fantasmes--;
   }
   else 
   {
@@ -165,8 +164,7 @@ void carrega_parametres(const char *nom_fit)
     fclose(fit);
     exit(2);
 	}
-  printf("fantasmes totals = %d\n", total_fantasmes);
-  for(int i = 0; i<=total_fantasmes; i++){
+  for(int i = 0; i<total_fantasmes; i++){
     if ((fantasmes[i].f < 1) || (fantasmes[i].f > n_fil1-3) ||
     (fantasmes[i].c < 1) || (fantasmes[i].c > n_col-2) ||
     (fantasmes[i].d < 0) || (fantasmes[i].d > 3))
@@ -193,7 +191,7 @@ void carrega_parametres(const char *nom_fit)
 void inicialitza_joc(void)
 {
   int r,i,j;
-  char strin[12];
+  //char strin[12];
 
   r = win_carregatauler(tauler,n_fil1-1,n_col,c_req);
   if (r == 0)
@@ -202,22 +200,24 @@ void inicialitza_joc(void)
     if (mc.a == c_req) r = -6;		/* error: menjacocos sobre pared */
     else
     {
-       fantasmes[0].a = win_quincar(fantasmes[0].f,fantasmes[0].c);
-       if (fantasmes[0].a == c_req) r = -7;	/* error: fantasma sobre pared */
-       else
-       {
-	cocos = 0;			/* compta el numero total de cocos */
-	for (i=0; i<n_fil1-1; i++)
-	  for (j=0; j<n_col; j++)
-	    if (win_quincar(i,j)=='.') cocos++;
-	    
-        win_escricar(mc.f,mc.c,'0',NO_INV);
-	win_escricar(fantasmes[0].f,fantasmes[0].c,'1',NO_INV);
+      for(int n = 0; n<total_fantasmes;n++){
+        fantasmes[n].a = win_quincar(fantasmes[n].f,fantasmes[n].c);
+        if (fantasmes[n].a == c_req) r = -7;	/* error: fantasma sobre pared */
+        else
+        {
+        cocos = 0;			/* compta el numero total de cocos */
+        for (i=0; i<n_fil1-1; i++)
+          for (j=0; j<n_col; j++)
+            if (win_quincar(i,j)=='.') cocos++;
+            
+        win_escricar(fantasmes[n].f,fantasmes[n].c,n+'0',NO_INV);
 
-        if (mc.a == '.') cocos--;	/* menja primer coco */
+        }
+      }
+      //win_escricar(mc.f,mc.c,'0',NO_INV);
+      //if (mc.a == '.') cocos--;	/* menja primer coco */
 
-	sprintf(strin,"Cocos: %d", cocos); win_escristr(strin);
-       }
+	  //sprintf(strin,"Cocos: %d", cocos); win_escristr(strin);
     }
   }
   if (r != 0)
@@ -296,6 +296,7 @@ void * mou_fantasma(void * index)
         //intptr_t i = (intptr_t) fi2;
       }
     }
+    //retard = retard*fantasmes[i].r;
     win_retard(retard);
   } while (!fi1 && !fi2);
 
@@ -381,7 +382,7 @@ void * mou_menjacocos(void * null)
 /* programa principal				    */
 int main(int n_args, const char *ll_args[])
 {
-  int rc, p, n, temps, min, seg;//, status;		/* variables locals */
+  int rc, p, n, temps, min, seg, status;		/* variables locals */
 
   srand(getpid());		/* inicialitza numeros aleatoris */
 
@@ -404,7 +405,7 @@ int main(int n_args, const char *ll_args[])
     if(pthread_create(&tid[n], NULL, mou_menjacocos, NULL) == 0)
       n++;
 
-    for(int i = 0; i<=total_fantasmes; i++){
+    for(int i = 0; i<total_fantasmes; i++){
       if(pthread_create(&tid[n], NULL, mou_fantasma, (void*)(intptr_t) i+1) == 0)
       {
         n++;
@@ -429,7 +430,7 @@ int main(int n_args, const char *ll_args[])
  
       pthread_mutex_lock(&mutex);
       sprintf(strin,
-          "La duracio de la partida han sigut %d:%d\n, cocos: %d",
+          "La duracio de la partida han sigut %d:%2.d, cocos: %d\n",
           min,seg,cocos);
       win_escristr(strin);	
       pthread_mutex_unlock(&mutex);
