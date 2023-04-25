@@ -198,9 +198,9 @@ void inicialitza_joc(void)
     if (mc.a == c_req) r = -6;		/* error: menjacocos sobre pared */
     else
     {
-      for(i = 0; i<=total_fantasmes;i++){
-        fantasmes[i].a = win_quincar(fantasmes[i].f,fantasmes[i].c);
-        if (fantasmes[i].a == c_req) r = -7;	/* error: fantasma sobre pared */
+      for(int n = 0; n<total_fantasmes;n++){
+        fantasmes[n].a = win_quincar(fantasmes[n].f,fantasmes[n].c);
+        if (fantasmes[n].a == c_req) r = -7;	/* error: fantasma sobre pared */
         else
         {
         cocos = 0;			/* compta el numero total de cocos */
@@ -208,11 +208,11 @@ void inicialitza_joc(void)
           for (j=0; j<n_col; j++)
             if (win_quincar(i,j)=='.') cocos++;
             
-              win_escricar(mc.f,mc.c,'0',NO_INV);
-        win_escricar(fantasmes[i].f,fantasmes[i].c,i+'0',NO_INV);
+        win_escricar(fantasmes[n].f,fantasmes[n].c,n+'0',NO_INV);
 
         }
       }
+      win_escricar(mc.f,mc.c,'0',NO_INV);
       //if (mc.a == '.') cocos--;	/* menja primer coco */
 
 	  //sprintf(strin,"Cocos: %d", cocos); win_escristr(strin);
@@ -279,7 +279,7 @@ void * mou_fantasma(void * index)
       seg.a = win_quincar(seg.f,seg.c);	/* calcular caracter seguent posicio */
       win_escricar(fantasmes[i].f,fantasmes[i].c,fantasmes[i].a,NO_INV);	/* esborra posicio anterior */
       fantasmes[i].f = seg.f; fantasmes[i].c = seg.c; fantasmes[i].a = seg.a;	/* actualitza posicio */
-      win_escricar(fantasmes[i].f,fantasmes[i].c,i+'0',NO_INV);		/* redibuixa fantasma */
+      win_escricar(fantasmes[i].f,fantasmes[i].c,i+1+'0',NO_INV);		/* redibuixa fantasma */
       if (fantasmes[i].a == '0') 
       {
         fi2 = 1;		/* ha capturat menjacocos */
@@ -379,7 +379,7 @@ int main(int n_args, const char *ll_args[])
       n++;
 
     for(int i = 0; i<=total_fantasmes; i++){
-      if(pthread_create(&tid[n], NULL, mou_fantasma, (void*)(intptr_t) i+1) == 0)
+      if(pthread_create(&tid[n], NULL, mou_fantasma, (void*)(intptr_t) i) == 0)
       {
         n++;
       }

@@ -214,7 +214,7 @@ void inicialitza_joc(void)
 
         }
       }
-      //win_escricar(mc.f,mc.c,'0',NO_INV);
+      win_escricar(mc.f,mc.c,'0',NO_INV);
       //if (mc.a == '.') cocos--;	/* menja primer coco */
 
 	  //sprintf(strin,"Cocos: %d", cocos); win_escristr(strin);
@@ -286,7 +286,7 @@ void * mou_fantasma(void * index)
       seg.a = win_quincar(seg.f,seg.c);	/* calcular caracter seguent posicio */
       win_escricar(fantasmes[i].f,fantasmes[i].c,fantasmes[i].a,NO_INV);	/* esborra posicio anterior */
       fantasmes[i].f = seg.f; fantasmes[i].c = seg.c; fantasmes[i].a = seg.a;	/* actualitza posicio */
-      win_escricar(fantasmes[i].f,fantasmes[i].c,i+'0',NO_INV);		/* redibuixa fantasma */
+      win_escricar(fantasmes[i].f,fantasmes[i].c,i+1+'0',NO_INV);		/* redibuixa fantasma */
       pthread_mutex_unlock(&mutex);
       if (fantasmes[i].a == '0') 
       {
@@ -297,7 +297,7 @@ void * mou_fantasma(void * index)
       }
     }
     //retard = retard*fantasmes[i].r;
-    win_retard(retard);
+    win_retard(retard*fantasmes[i].r);
   } while (!fi1 && !fi2);
 
   
@@ -406,16 +406,12 @@ int main(int n_args, const char *ll_args[])
       n++;
 
     for(int i = 0; i<total_fantasmes; i++){
-      if(pthread_create(&tid[n], NULL, mou_fantasma, (void*)(intptr_t) i+1) == 0)
+      if(pthread_create(&tid[n], NULL, mou_fantasma, (void*)(intptr_t) i) == 0)
       {
         n++;
       }
     }
 
-
-    /*for (int i=0;i<n;i++){
-      pthread_join(tid[i], (void **) &status);
-    }*/
     temps = 0; min = 0; seg = 0;
 
     do			/********** bucle principal del joc **********/
