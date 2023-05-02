@@ -149,9 +149,9 @@ void carrega_parametres(const char *nom_fit)
   }
 
   
-  if (!feof(fit)) 
+  if (!feof(fit) && total_fantasmes < MAX_GHOSTS) 
   {
-    while(!feof(fit)){
+    while(!feof(fit) && total_fantasmes < MAX_GHOSTS){
       fscanf(fit,"%d %d %d %f\n",&fantasmes[total_fantasmes].f,&fantasmes[total_fantasmes].c,&fantasmes[total_fantasmes].d,&fantasmes[total_fantasmes].r);
       total_fantasmes++;
     }
@@ -198,20 +198,16 @@ void inicialitza_joc(void)
     if (mc.a == c_req) r = -6;		/* error: menjacocos sobre pared */
     else
     {
-      for(int n = 0; n<total_fantasmes;n++){
-        fantasmes[n].a = win_quincar(fantasmes[n].f,fantasmes[n].c);
-        if (fantasmes[n].a == c_req) r = -7;	/* error: fantasma sobre pared */
-        else
-        {
+      //for(int n = 0; n<total_fantasmes;n++){
+        
         cocos = 0;			/* compta el numero total de cocos */
         for (i=0; i<n_fil1-1; i++)
           for (j=0; j<n_col; j++)
             if (win_quincar(i,j)=='.') cocos++;
             
-        win_escricar(fantasmes[n].f,fantasmes[n].c,n+'0',NO_INV);
 
-        }
-      }
+        
+      //}
       win_escricar(mc.f,mc.c,'0',NO_INV);
       //if (mc.a == '.') cocos--;	/* menja primer coco */
 
@@ -243,9 +239,18 @@ void * mou_fantasma(void * index)
   objecte seg;
   //int ret;
   int k, vk, nd, vd[3];
-  nd = 0;
+
+  fantasmes[i].a = win_quincar(fantasmes[i].f,fantasmes[i].c);
+  if (fantasmes[i].a == c_req) {
+    fprintf(stderr,"  posicio inicial del fantasma damunt la pared del laberint\n"); /* error: fantasma sobre pared */
+    exit(7);
+  }
+
+  win_escricar(fantasmes[i].f,fantasmes[i].c,i+'0',NO_INV);
+
   do{
   //ret = 0; 
+    nd = 0;
     for (k=-1; k<=1; k++)		/* provar direccio actual i dir. veines */
     {
       vk = (fantasmes[i].d + k) % 4;		/* direccio veina */
@@ -277,16 +282,19 @@ void * mou_fantasma(void * index)
       seg.f = fantasmes[i].f + df[fantasmes[i].d];  /* calcular seguent posicio final */
       seg.c = fantasmes[i].c + dc[fantasmes[i].d];
       seg.a = win_quincar(seg.f,seg.c);	/* calcular caracter seguent posicio */
-      win_escricar(fantasmes[i].f,fantasmes[i].c,fantasmes[i].a,NO_INV);	/* esborra posicio anterior */
-      fantasmes[i].f = seg.f; fantasmes[i].c = seg.c; fantasmes[i].a = seg.a;	/* actualitza posicio */
-      win_escricar(fantasmes[i].f,fantasmes[i].c,i+1+'0',NO_INV);		/* redibuixa fantasma */
-      if (fantasmes[i].a == '0') 
+      if ((seg.a==' ') || (seg.a=='.') || (seg.a=='0'))
       {
-        fi2 = 1;		/* ha capturat menjacocos */
+        win_escricar(fantasmes[i].f,fantasmes[i].c,fantasmes[i].a,NO_INV);	/* esborra posicio anterior */
+        fantasmes[i].f = seg.f; fantasmes[i].c = seg.c; fantasmes[i].a = seg.a;	/* actualitza posicio */
+        win_escricar(fantasmes[i].f,fantasmes[i].c,i+1+'0',NO_INV);		/* redibuixa fantasma */
+        if (fantasmes[i].a == '0')
+        {
+          fi2 = 1;		/* ha capturat menjacocos */
         //intptr_t i = (intptr_t) fi2;
+        }
       }
     }
-    win_retard(retard);
+    win_retard(retard*fantasmes[i].r);
   } while (!fi1 && !fi2);
 
   
@@ -337,12 +345,10 @@ void * mou_menjacocos(void * null)
         if (cocos == 0) 
         {
           fi1 = 1;
-          pthread_join(tid[0], (void **) &status);
-          pthread_exit((void *)(intptr_t) fi1);
         }
       }
     }
-    win_retard(retard);
+    win_retard(retard*mc.r);
   } while (!fi1 && !fi2);
   //return(ret);
 }
@@ -378,7 +384,7 @@ int main(int n_args, const char *ll_args[])
     if(pthread_create(&tid[n], NULL, mou_menjacocos, NULL) == 0)
       n++;
 
-    for(int i = 0; i<=total_fantasmes; i++){
+    for(int i = 0; i<total_fantasmes; i++){
       if(pthread_create(&tid[n], NULL, mou_fantasma, (void*)(intptr_t) i) == 0)
       {
         n++;

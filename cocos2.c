@@ -65,7 +65,7 @@
 #define MAX_COL 80
 #define MAX_THREADS 10
 #define MAX_GHOSTS 9
-#define LONGMISS	65
+#define LONGMISS	20
 
 				/* definir estructures d'informacio */
 typedef struct {		/* per un objecte (menjacocos o fantasma) */
@@ -151,9 +151,9 @@ void carrega_parametres(const char *nom_fit)
   }
 
   
-  if (!feof(fit)) 
+  if (!feof(fit) && total_fantasmes < MAX_GHOSTS) 
   {
-    while(!feof(fit)){
+    while(!feof(fit) && total_fantasmes < MAX_GHOSTS){
       fscanf(fit,"%d %d %d %f\n",&fantasmes[total_fantasmes].f,&fantasmes[total_fantasmes].c,&fantasmes[total_fantasmes].d,&fantasmes[total_fantasmes].r);
       total_fantasmes++;
     }
@@ -200,20 +200,16 @@ void inicialitza_joc(void)
     if (mc.a == c_req) r = -6;		/* error: menjacocos sobre pared */
     else
     {
-      for(int n = 0; n<total_fantasmes;n++){
-        fantasmes[n].a = win_quincar(fantasmes[n].f,fantasmes[n].c);
-        if (fantasmes[n].a == c_req) r = -7;	/* error: fantasma sobre pared */
-        else
-        {
+      //for(int n = 0; n<total_fantasmes;n++){
+        
         cocos = 0;			/* compta el numero total de cocos */
         for (i=0; i<n_fil1-1; i++)
           for (j=0; j<n_col; j++)
             if (win_quincar(i,j)=='.') cocos++;
             
-        win_escricar(fantasmes[n].f,fantasmes[n].c,n+'0',NO_INV);
 
-        }
-      }
+        
+      //}
       win_escricar(mc.f,mc.c,'0',NO_INV);
       //if (mc.a == '.') cocos--;	/* menja primer coco */
 
@@ -247,9 +243,20 @@ void * mou_fantasma(void * index)
   objecte seg;
   //int ret;
   int k, vk, nd, vd[3];
-  nd = 0;
+  
+  pthread_mutex_lock(&mutex);
+  fantasmes[i].a = win_quincar(fantasmes[i].f,fantasmes[i].c);
+  pthread_mutex_unlock(&mutex);
+  if (fantasmes[i].a == c_req) {
+    fprintf(stderr,"  posicio inicial del fantasma damunt la pared del laberint\n"); /* error: fantasma sobre pared */
+    exit(7);
+  }
+  pthread_mutex_lock(&mutex);
+  win_escricar(fantasmes[i].f,fantasmes[i].c,i+'0',NO_INV);
+  pthread_mutex_unlock(&mutex);
   do{
   //ret = 0; 
+    nd = 0;
     for (k=-1; k<=1; k++)		/* provar direccio actual i dir. veines */
     {
       vk = (fantasmes[i].d + k) % 4;		/* direccio veina */
@@ -284,19 +291,22 @@ void * mou_fantasma(void * index)
       seg.c = fantasmes[i].c + dc[fantasmes[i].d];
       pthread_mutex_lock(&mutex);
       seg.a = win_quincar(seg.f,seg.c);	/* calcular caracter seguent posicio */
-      win_escricar(fantasmes[i].f,fantasmes[i].c,fantasmes[i].a,NO_INV);	/* esborra posicio anterior */
-      fantasmes[i].f = seg.f; fantasmes[i].c = seg.c; fantasmes[i].a = seg.a;	/* actualitza posicio */
-      win_escricar(fantasmes[i].f,fantasmes[i].c,i+1+'0',NO_INV);		/* redibuixa fantasma */
-      pthread_mutex_unlock(&mutex);
-      if (fantasmes[i].a == '0') 
+      if ((seg.a==' ') || (seg.a=='.') || (seg.a=='0'))
       {
-        pthread_mutex_lock(&mutex);
-        fi2 = 1;		/* ha capturat menjacocos */
+        win_escricar(fantasmes[i].f,fantasmes[i].c,fantasmes[i].a,NO_INV);	/* esborra posicio anterior */
+        fantasmes[i].f = seg.f; fantasmes[i].c = seg.c; fantasmes[i].a = seg.a;	/* actualitza posicio */
+        win_escricar(fantasmes[i].f,fantasmes[i].c,i+1+'0',NO_INV);		/* redibuixa fantasma */
         pthread_mutex_unlock(&mutex);
-        //intptr_t i = (intptr_t) fi2;
+        pthread_mutex_lock(&mutex);
+        if (fantasmes[i].a == '0') 
+        {
+          fi2 = 1;		/* ha capturat menjacocos */
+        }
+        pthread_mutex_unlock(&mutex);
+      }else{
+        pthread_mutex_unlock(&mutex);
       }
     }
-    //retard = retard*fantasmes[i].r;
     win_retard(retard*fantasmes[i].r);
   } while (!fi1 && !fi2);
 
@@ -339,36 +349,26 @@ void * mou_menjacocos(void * null)
     seg.c = mc.c + dc[mc.d];
     pthread_mutex_lock(&mutex);
     seg.a = win_quincar(seg.f,seg.c);	/* calcular caracter seguent posicio */
-    pthread_mutex_unlock(&mutex);
     if ((seg.a == ' ') || (seg.a == '.'))
     {
-      pthread_mutex_lock(&mutex);
       win_escricar(mc.f,mc.c,' ',NO_INV);		/* esborra posicio anterior */
-      pthread_mutex_unlock(&mutex);
       mc.f = seg.f; mc.c = seg.c;			/* actualitza posicio */
-      pthread_mutex_lock(&mutex);
       win_escricar(mc.f,mc.c,'0',NO_INV);		/* redibuixa menjacocos */
       pthread_mutex_unlock(&mutex);
       if (seg.a == '.')
       {
         pthread_mutex_lock(&mutex);
         cocos--;
-        pthread_mutex_unlock(&mutex);
-        /*pthread_mutex_lock(&mutex);
-        sprintf(string,"Cocos: %d", cocos); 
-        pthread_mutex_unlock(&mutex);
-        pthread_mutex_lock(&mutex);
-        win_escristr(strin);
-        pthread_mutex_unlock(&mutex);*/
         if (cocos == 0) 
         {
-          pthread_mutex_lock(&mutex);
           fi1 = 1;
-          pthread_mutex_unlock(&mutex);
         }
+        pthread_mutex_unlock(&mutex);
       }
+    }else{
+      pthread_mutex_unlock(&mutex);
     }
-    win_retard(retard);
+    win_retard(retard*mc.r);
   } while (!fi1 && !fi2);
   //return(ret);
 }
@@ -382,7 +382,7 @@ void * mou_menjacocos(void * null)
 /* programa principal				    */
 int main(int n_args, const char *ll_args[])
 {
-  int rc, p, n, temps, min, seg, status;		/* variables locals */
+  int rc, p, n, t_seg, min, seg, status;		/* variables locals */
 
   srand(getpid());		/* inicialitza numeros aleatoris */
 
@@ -412,28 +412,24 @@ int main(int n_args, const char *ll_args[])
       }
     }
 
-    temps = 0; min = 0; seg = 0;
+    t_seg = 0; min = 0; seg = 0;
 
     do			/********** bucle principal del joc **********/
     { 
-      p++; 
-      //if ((p%2)==0)		/* ralentitza fantasma a 2*retard */
-        //fi2 = status;
-      win_retard(retard);
-      temps = temps + retard;
-      min=(temps / 1000) / 60;
-	    seg=(temps / 1000) % 60;
- 
+      win_retard(1000);
+	    seg=seg+1;
+      min=seg/60;
+      t_seg=seg%60;
       pthread_mutex_lock(&mutex);
       sprintf(strin,
-          "La duracio de la partida han sigut %d:%2.d, cocos: %d\n",
-          min,seg,cocos);
+          "%d:%2.d, Cocos: %d\n",
+          min,t_seg,cocos);
       win_escristr(strin);	
       pthread_mutex_unlock(&mutex);
       
     } while (!fi1 && !fi2);
 
-    for (int i=0;i<n;i++){
+    for (int i=0;i<=n;i++){
       pthread_join(tid[i], (void **) &status);
     }
 
