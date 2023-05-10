@@ -57,6 +57,7 @@
 #include <pthread.h>
 #include "winsuport.h"		/* incloure definicions de funcions propies */
 #include "winsuport2.h"
+#include "memoria.h"
 
 
 #define MIN_FIL 7		/* definir limits de variables globals */
@@ -385,6 +386,7 @@ void * mou_menjacocos(void * null)
 int main(int n_args, const char *ll_args[])
 {
   int rc, p, n, t_seg, min, seg, status;		/* variables locals */
+  int *testvar;
 
   srand(getpid());		/* inicialitza numeros aleatoris */
 
@@ -399,12 +401,16 @@ int main(int n_args, const char *ll_args[])
   else retard = 100;
 
   rc = win_ini(&n_fil1,&n_col,'+',INVERS);	/* intenta crear taulell */
+  //printf("%d", &rc);
+
+  int mem_comp=ini_mem(n_fil1*n_col);
+  testvar =map_mem(mem_comp);
+
   if (rc == 0)		/* si aconsegueix accedir a l'entorn CURSES */
   {
-    win_set(rc, &n_fil1, &n_col);
+    win_set(mem_comp, &n_fil1, &n_col);
     inicialitza_joc();
     win_update();
-    
     //pthread_mutex_init(&mutex, NULL); /* inicialitza el semafor */
     p = 0; n = 0;
     if(pthread_create(&tid[n], NULL, mou_menjacocos, NULL) == 0)    //MIRAR
