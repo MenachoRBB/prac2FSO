@@ -403,10 +403,10 @@ int main(int n_args, const char *ll_args[])
   rc = win_ini(&n_fil1,&n_col,'+',INVERS);	/* intenta crear taulell */
   //printf("%d", &rc);
 
-  int mem_comp=ini_mem(n_fil1*n_col);
+  int mem_comp=ini_mem(rc);
   testvar =map_mem(mem_comp);
 
-  if (rc == 0)		/* si aconsegueix accedir a l'entorn CURSES */
+  if (rc >= 0)		/* si aconsegueix accedir a l'entorn CURSES */
   {
     win_set(mem_comp, &n_fil1, &n_col);
     inicialitza_joc();
