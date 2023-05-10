@@ -22,4 +22,4 @@ winsuport.o : winsuport.c winsuport.h
 	gcc -Wall -c winsuport.c -o winsuport.o 
 
 clean:
-	rm -f cocos0 cocos1 cocos2 winsuport.o
+	rm -f cocos0 cocos1 cocos2 cocos3 winsuport.o

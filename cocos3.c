@@ -56,7 +56,7 @@
 #include <unistd.h>		/* per getpid() */
 #include <pthread.h>
 #include "winsuport.h"		/* incloure definicions de funcions propies */
-
+#include "winsuport2.h"
 
 
 #define MIN_FIL 7		/* definir limits de variables globals */
@@ -401,10 +401,13 @@ int main(int n_args, const char *ll_args[])
   rc = win_ini(&n_fil1,&n_col,'+',INVERS);	/* intenta crear taulell */
   if (rc == 0)		/* si aconsegueix accedir a l'entorn CURSES */
   {
+    win_set(rc, &n_fil1, &n_col);
     inicialitza_joc();
+    win_update();
+    
     //pthread_mutex_init(&mutex, NULL); /* inicialitza el semafor */
     p = 0; n = 0;
-    if(pthread_create(&tid[n], NULL, mou_menjacocos, NULL) == 0)
+    if(pthread_create(&tid[n], NULL, mou_menjacocos, NULL) == 0)    //MIRAR
       n++;
 
     for ( int i = 0; i < total_fantasmes; i++){
@@ -414,7 +417,7 @@ int main(int n_args, const char *ll_args[])
         execlp("./fantasma3", "fantasma3", a1, ll_args[2], a2, (char *)0);
         fprintf(stderr,"error: no puc executar el process fill \'fantasma3\'\n");
         exit(0);
-      }else if (tpid[n] > 0) n++; /* branca del pare */
+      }else if (tpid[n] >= 0) n++; /* branca del pare */
     }
     /*for(int i = 0; i<total_fantasmes; i++){
       if(pthread_create(&tid[n], NULL, mou_fantasma, (void*)(intptr_t) i) == 0)

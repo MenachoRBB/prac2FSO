@@ -323,7 +323,7 @@ void * mou_fantasma(void * index)
 void * mou_menjacocos(void * null)
 {
   //char string[12];
-  int status;
+  //int status;
   objecte seg;
   int tec;//, ret;
   
@@ -382,7 +382,7 @@ void * mou_menjacocos(void * null)
 /* programa principal				    */
 int main(int n_args, const char *ll_args[])
 {
-  int rc, p, n, t_seg, min, seg, status;		/* variables locals */
+  int rc, n, t_seg, min, seg, status;		/* variables locals */
 
   srand(getpid());		/* inicialitza numeros aleatoris */
 
@@ -401,7 +401,7 @@ int main(int n_args, const char *ll_args[])
   {
     inicialitza_joc();
     pthread_mutex_init(&mutex, NULL); /* inicialitza el semafor */
-    p = 0; n = 0;
+    n = 0;
     if(pthread_create(&tid[n], NULL, mou_menjacocos, NULL) == 0)
       n++;
 
