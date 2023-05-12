@@ -386,7 +386,7 @@ int main(int n_args, const char *ll_args[])
 {
   int rc, n, t_seg, min, seg;		/* variables locals */
   int id_win,t;
-  char a1[20],a2[20],a3[20],a4[20],a5[10],a6[10];
+  char a1[20],a2[20],a3[20],a4[20],a5[10],a6[10],a7[10],a8[10],a9[10],a_fi1[10],a_fi2[10];
   void *p_win;
 
   srand(getpid());		/* inicialitza numeros aleatoris */
@@ -425,8 +425,14 @@ int main(int n_args, const char *ll_args[])
       if (tpid[n] == (pid_t) 0) /* branca del fill */
       {
         sprintf(a1,"%i",(i+1));
-        sprintf(a2,"%f",fantasmes[n].r);
-        execlp("./fantasma3", "fantasma3", a1, a2, a4, a5, a6, (char *)0);
+        sprintf(a2,"%i",retard);
+        sprintf(a3,"%f",fantasmes[n].r);
+        sprintf(a7,"%i",fantasmes[n].f);
+        sprintf(a8,"%i",fantasmes[n].c);
+        sprintf(a9,"%i",fantasmes[n].d);
+        sprintf(a_fi1,"%i",fi1);
+        sprintf(a_fi2,"%i",fi2);
+        execlp("./fantasma3", "fantasma3", a1, a2, a4, a5, a6, a7, a8, a9, fantasmes[n].a, a3, a_fi1, a_fi2, (char *)0);
         fprintf(stderr,"error: no puc executar el process fill \'fantasma3\'\n");
         exit(0);
       }else if (tpid[n] > 0) n++; /* branca del pare */
