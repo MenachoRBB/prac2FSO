@@ -49,13 +49,13 @@
 /*	7  ==>  no s'ha pogut inicialitzar el joc			                     */
 /*****************************************************************************/
 
-
+//#include <sys/wait.h>
 #include <stdint.h>		/* intptr_t for 64bits machines */
 #include <stdio.h>		/* incloure definicions de funcions estandard */
 #include <stdlib.h>		/* per exit() */
 #include <unistd.h>		/* per getpid() */
 #include <pthread.h>
-#include "winsuport.h"		/* incloure definicions de funcions propies */
+//#include "winsuport.h"		/* incloure definicions de funcions propies */
 #include "winsuport2.h"
 #include "memoria.h"
 
@@ -74,7 +74,7 @@ typedef struct {		/* per un objecte (menjacocos o fantasma) */
 	int f;				/* posicio actual: fila */
 	int c;				/* posicio actual: columna */
 	int d;				/* direccio actual: [0..3] */
-    float r;            /* per indicar un retard relati */
+  float r;            /* per indicar un retard relati */
 	char a;				/* caracter anterior en pos. actual */
 } objecte;
 
@@ -326,7 +326,6 @@ void * mou_fantasma(void * index)
 void * mou_menjacocos(void * null)
 {
   //char string[12];
-  int status;
   objecte seg;
   int tec;//, ret;
   
@@ -385,8 +384,10 @@ void * mou_menjacocos(void * null)
 /* programa principal				    */
 int main(int n_args, const char *ll_args[])
 {
-  int rc, p, n, t_seg, min, seg, status;		/* variables locals */
-  int *testvar;
+  int rc, n, t_seg, min, seg;		/* variables locals */
+  int id_win,t;
+  char a1[20],a2[20],a3[20],a4[20],a5[10],a6[10];
+  void *p_win;
 
   srand(getpid());		/* inicialitza numeros aleatoris */
 
@@ -403,16 +404,19 @@ int main(int n_args, const char *ll_args[])
   rc = win_ini(&n_fil1,&n_col,'+',INVERS);	/* intenta crear taulell */
   //printf("%d", &rc);
 
-  int mem_comp=ini_mem(rc);
-  testvar =map_mem(mem_comp);
+  id_win = ini_mem(rc);	/* crear zona mem. compartida */
+  p_win = map_mem(id_win);	/* obtenir adres. de mem. compartida */
+  sprintf(a4,"%i",id_win);
+  sprintf(a5,"%i",n_fil1);	/* convertir mides camp en string */
+  sprintf(a6,"%i",n_col);
 
   if (rc >= 0)		/* si aconsegueix accedir a l'entorn CURSES */
   {
-    win_set(mem_comp, &n_fil1, &n_col);
+    win_set(p_win, n_fil1, n_col);
     inicialitza_joc();
     win_update();
     //pthread_mutex_init(&mutex, NULL); /* inicialitza el semafor */
-    p = 0; n = 0;
+    n = 0;
     if(pthread_create(&tid[n], NULL, mou_menjacocos, NULL) == 0)    //MIRAR
       n++;
 
@@ -420,10 +424,12 @@ int main(int n_args, const char *ll_args[])
       tpid[n] = fork(); /* crea un nou proces */
       if (tpid[n] == (pid_t) 0) /* branca del fill */
       {
-        execlp("./fantasma3", "fantasma3", a1, ll_args[2], a2, (char *)0);
+        sprintf(a1,"%i",(i+1));
+        sprintf(a2,"%f",fantasmes[n].r);
+        execlp("./fantasma3", "fantasma3", a1, a2, a4, a5, a6, (char *)0);
         fprintf(stderr,"error: no puc executar el process fill \'fantasma3\'\n");
         exit(0);
-      }else if (tpid[n] >= 0) n++; /* branca del pare */
+      }else if (tpid[n] > 0) n++; /* branca del pare */
     }
     /*for(int i = 0; i<total_fantasmes; i++){
       if(pthread_create(&tid[n], NULL, mou_fantasma, (void*)(intptr_t) i) == 0)
@@ -437,6 +443,7 @@ int main(int n_args, const char *ll_args[])
     do			/********** bucle principal del joc **********/
     { 
       win_retard(1000);
+      win_update();
 	    seg=seg+1;
       min=seg/60;
       t_seg=seg%60;
