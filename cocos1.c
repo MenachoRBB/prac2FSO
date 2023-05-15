@@ -199,17 +199,13 @@ void inicialitza_joc(void)
     else
     {
       //for(int n = 0; n<total_fantasmes;n++){
-        
-        cocos = 0;			/* compta el numero total de cocos */
-        for (i=0; i<n_fil1-1; i++)
-          for (j=0; j<n_col; j++)
-            if (win_quincar(i,j)=='.') cocos++;
-            
-
-        
+      cocos = 0;			/* compta el numero total de cocos */
+      for (i=0; i<n_fil1-1; i++)
+        for (j=0; j<n_col; j++)
+          if (win_quincar(i,j)=='.') cocos++;
       //}
       win_escricar(mc.f,mc.c,'0',NO_INV);
-      //if (mc.a == '.') cocos--;	/* menja primer coco */
+      if (mc.a == '.') cocos--;	/* menja primer coco */
 
 	  //sprintf(strin,"Cocos: %d", cocos); win_escristr(strin);
     }
@@ -362,7 +358,7 @@ void * mou_menjacocos(void * null)
 /* programa principal				    */
 int main(int n_args, const char *ll_args[])
 {
-  int rc, p, n, temps, min, seg, status;		/* variables locals */
+  int rc, p, n, t_seg, min, seg, status;		/* variables locals */
 
   srand(getpid());		/* inicialitza numeros aleatoris */
 
@@ -391,21 +387,22 @@ int main(int n_args, const char *ll_args[])
       }
     }
 
-    temps = 0; min = 0; seg = 0;
-
+    t_seg = 0; min = 0; seg = 0;
+    int t_ret=0;
     do			/********** bucle principal del joc **********/
     { 
-      p++; 
-      //if ((p%2)==0)		/* ralentitza fantasma a 2*retard */
-        //fi2 = status;
       win_retard(retard);
-      temps = temps + retard;
-      min=(temps / 1000) / 60;
-	    seg=(temps / 1000) % 60;
-       sprintf(strin,
-          "La duracio de la partida han sigut %d:%d, cocos: %d",
-          min,seg,cocos);
-      win_escristr(strin);	      
+	    t_ret=t_ret+retard;
+      if(t_ret >= 1000){
+        seg=seg+1;
+        min=seg/60;
+        t_seg=seg%60;
+        t_ret = 0;
+      }
+      sprintf(strin,
+          "%02d:%02d, Cocos: %d\n",
+          min,t_seg,cocos-1); //Error continuava el joc, per això el -1
+      win_escristr(strin);	
     } while (!fi1 && !fi2);
 
     for (int i=0;i<n;i++){

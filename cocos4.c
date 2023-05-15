@@ -51,13 +51,16 @@
 
 //#include <sys/wait.h>
 #include <stdint.h>		/* intptr_t for 64bits machines */
+#include <sys/types.h>
 #include <stdio.h>		/* incloure definicions de funcions estandard */
 #include <stdlib.h>		/* per exit() */
 #include <unistd.h>		/* per getpid() */
 #include <pthread.h>
 //#include "winsuport.h"		/* incloure definicions de funcions propies */
+#include "semafor.h"
 #include "winsuport2.h"
 #include "memoria.h"
+#include "missatge.h"
 
 
 #define MIN_FIL 7		/* definir limits de variables globals */
@@ -300,7 +303,8 @@ int main(int n_args, const char *ll_args[])
 {
   int rc, n, t_seg, min, seg, status;		/* variables locals */
   int id_win,id_fi1,id_fi2,t;
-  char a1[20],a2[20],a3[20],a4[20],a5[10],a6[10],a7[10],a8[10],a9[10],a10[10],a_fi1[10],a_fi2[10];
+  char a1[10],a2[10],a3[10],a4[10],a5[10],a6[10],a7[10],a8[10],a9[10],a10[10],a_fi1[10],a_fi2[10],a_id_bustia[10],a_id_sem[10];
+  int id_sem, id_bustia;
   void *p_win;
 
   srand(getpid());		/* inicialitza numeros aleatoris */
@@ -329,6 +333,12 @@ int main(int n_args, const char *ll_args[])
   id_fi2 = ini_mem(sizeof(int));	/* crear zona mem. compartida */
   fi2 = map_mem(id_fi2);	/* obtenir adres. de mem. compartida */
 
+  id_sem = ini_sem(1);	    /* crear semafor IPC inicialment obert */
+  sprintf(a_id_sem,"%i",id_sem);	    /* convertir identificador sem. en string */
+
+  id_bustia = ini_mis();	    /* crear bustia IPC */
+  sprintf(a_id_bustia,"%i",id_bustia);	    /* convertir identificador bustia en string */
+
   if (rc >= 0)		/* si aconsegueix accedir a l'entorn CURSES */
   {
     win_set(p_win, n_fil1, n_col);
@@ -351,8 +361,8 @@ int main(int n_args, const char *ll_args[])
         sprintf(a10,"%i",fantasmes[i].a);
         sprintf(a_fi1,"%i",id_fi1);
         sprintf(a_fi2,"%i",id_fi2);
-        execlp("./fantasma3", "fantasma3", a1, a2, a4, a5, a6, a7, a8, a9, a10, a3, a_fi1, a_fi2, (char *)0);
-        fprintf(stderr,"error: no puc executar el process fill \'fantasma3\'\n");
+        execlp("./fantasma4", "fantasma4", a1, a2, a4, a5, a6, a7, a8, a9, a10, a3, a_fi1, a_fi2, a_id_bustia, a_id_sem, (char *)0);
+        fprintf(stderr,"error: no puc executar el process fill \'fantasma4\'\n");
         exit(0);
       }else if (tpid[n] > 0) n++; /* branca del pare */
     }
@@ -394,6 +404,8 @@ int main(int n_args, const char *ll_args[])
     //pthread_mutex_destroy(&mutex); /* destrueix el semafor */
 
     win_fi();
+    elim_mis(id_bustia);	/* elimina bustia */
+    elim_sem(id_sem);		/* elimina semafor */
     elim_mem(id_win);
 	  elim_mem(id_fi1);
 	  elim_mem(id_fi2);
