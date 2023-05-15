@@ -38,45 +38,44 @@ int dc[] = {0, -1, 0, 1};	/* dalt, esquerra, baix, dreta */
 int main(int n_args, char *ll_args[])
 {
   objecte fantasma;
-  int i,num_fantasma,retard, id_win,n_fil,n_col,fi1,fi2;
-  int *p_lletres, id_lletres;
+  int retard, id_win,id_fi1,id_fi2,n_fil,n_col,*fi1,*fi2;
+  int num_fantasma;
   void *p_win;
 
   if (n_args < 5)
-  {   fprintf(stderr,"\tproces (%d): fanstasma3 num_fantasma retard id_win n_fil n_col fil_fantasma col_fantasma direccio_fantasma char_anterior retard_fantasma\n",(int) getpid());
+  {   fprintf(stderr,"\tproces (%d): fanstasma3 num_fantasma retard id_win n_fil n_col fil_fantasma col_fantasma direccio_fantasma char_anterior retard_fantasma id_fi1 id_fi2\n",(int) getpid());
 	exit(0);
   }
 
   num_fantasma = atoi(ll_args[1]);
   retard = atoi(ll_args[2]);
 
-  /*id_lletres = atoi(ll_args[3]);
-  p_lletres = map_mem(id_lletres);	/* obtenir adres. de mem. compartida */
-  /*if (p_lletres == (int*) -1)
-  {   fprintf(stderr,"proces (%d): error en identificador de memoria\n",(int)getpid());
-	exit(0);
-  }*/
-
   id_win = atoi(ll_args[3]);
   p_win = map_mem(id_win);
+
   if (p_win == (int*) -1)
   {   fprintf(stderr,"proces (%d): error en identificador de finestra\n",(int)getpid());
 	exit(0);
   }
+  
   n_fil = atoi(ll_args[4]);		/* obtenir dimensions del camp de joc */
   n_col = atoi(ll_args[5]);
   fantasma.f = atoi(ll_args[6]);
   fantasma.c = atoi(ll_args[7]);
   fantasma.d = atoi(ll_args[8]);
-  fantasma.a = atoi(ll_args[9]);
-  fantasma.r = atoi(ll_args[10]);
-  fi1 = atoi(ll_args[11]);
-  fi2 = atoi(ll_args[12]);
-  win_set(p_win,n_fil,n_col);	/* crea acces a finestra oberta pel proces pare */
+  fantasma.a = ll_args[9][0];
+  fantasma.r = atof(ll_args[10]);
 
+  id_fi1 = atoi(ll_args[11]);
+  fi1 = map_mem(id_fi1);
+  
+  id_fi2 = atoi(ll_args[12]);
+  fi2 = map_mem(id_fi2);
+
+  win_set(p_win,n_fil,n_col);	/* crea acces a finestra oberta pel proces pare */
+  srand(getpid());
 
   /*############INICIO FUNCION MOU_FANTASMA############*/
-  i = num_fantasma;
   objecte seg;
   //int ret;
   int k, vk, nd, vd[3];
@@ -89,7 +88,7 @@ int main(int n_args, char *ll_args[])
     exit(7);
   }
   //pthread_mutex_lock(&mutex);
-  win_escricar(fantasma.f,fantasma.c,i+'0',NO_INV);
+  win_escricar(fantasma.f,fantasma.c,num_fantasma+'0',NO_INV);
   //pthread_mutex_unlock(&mutex);
   do{
   //ret = 0; 
@@ -132,12 +131,12 @@ int main(int n_args, char *ll_args[])
       {
         win_escricar(fantasma.f,fantasma.c,fantasma.a,NO_INV);	/* esborra posicio anterior */
         fantasma.f = seg.f; fantasma.c = seg.c; fantasma.a = seg.a;	/* actualitza posicio */
-        win_escricar(fantasma.f,fantasma.c,i+1+'0',NO_INV);		/* redibuixa fantasma */
+        win_escricar(fantasma.f,fantasma.c,num_fantasma+'0',NO_INV);		/* redibuixa fantasma */
         //pthread_mutex_unlock(&mutex);
         //pthread_mutex_lock(&mutex);
         if (fantasma.a == '0') 
         {
-          fi2 = 1;		/* ha capturat menjacocos */
+          *fi2 = 1;		/* ha capturat menjacocos */
         }
         //pthread_mutex_unlock(&mutex);
       }else{
@@ -145,7 +144,8 @@ int main(int n_args, char *ll_args[])
       }
     }
     win_retard(retard*fantasma.r);
-  } while (!fi1 && !fi2);
+  } while (!*fi1 && !*fi2);
   /*############FINAL FUNCION MOU_FANTASMA############*/
-  return(i);	/* retorna el numero de lletres que ha impres el proces */
+
+  return 0;	
 }

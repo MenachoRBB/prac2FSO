@@ -82,7 +82,7 @@ typedef struct {		/* per un objecte (menjacocos o fantasma) */
 /* variables globals */
 pthread_t tid[MAX_THREADS]; /* taula d'identificadors dels threads */
 pid_t tpid[MAX_PROCS]; /* taula d'identificadors dels processos fill */
-int fi1, fi2;         /* finalització del joc*/
+int *fi1, *fi2;         /* finalització del joc*/
 int n_fil1, n_col;		/* dimensions del camp de joc */
 char tauler[70];		/* nom del fitxer amb el laberint de joc */
 char c_req;			    /* caracter de pared del laberint */
@@ -209,9 +209,6 @@ void inicialitza_joc(void)
         for (i=0; i<n_fil1-1; i++)
           for (j=0; j<n_col; j++)
             if (win_quincar(i,j)=='.') cocos++;
-            
-
-        
       //}
       win_escricar(mc.f,mc.c,'0',NO_INV);
       //if (mc.a == '.') cocos--;	/* menja primer coco */
@@ -233,88 +230,6 @@ void inicialitza_joc(void)
 	}
 	exit(7);
   }
-}
-
-
-
-
-/* funcio per moure un fantasma una posicio; retorna 1 si el fantasma   */
-/* captura al menjacocos, 0 altrament					*/
-void * mou_fantasma(void * index)
-{
-  int i = (intptr_t) index;
-  objecte seg;
-  //int ret;
-  int k, vk, nd, vd[3];
-  
-  //pthread_mutex_lock(&mutex);
-  fantasmes[i].a = win_quincar(fantasmes[i].f,fantasmes[i].c);
-  //pthread_mutex_unlock(&mutex);
-  if (fantasmes[i].a == c_req) {
-    fprintf(stderr,"  posicio inicial del fantasma damunt la pared del laberint\n"); /* error: fantasma sobre pared */
-    exit(7);
-  }
-  //pthread_mutex_lock(&mutex);
-  win_escricar(fantasmes[i].f,fantasmes[i].c,i+'0',NO_INV);
-  //pthread_mutex_unlock(&mutex);
-  do{
-  //ret = 0; 
-    nd = 0;
-    for (k=-1; k<=1; k++)		/* provar direccio actual i dir. veines */
-    {
-      vk = (fantasmes[i].d + k) % 4;		/* direccio veina */
-      if (vk < 0) vk += 4;		/* corregeix negatius */
-      seg.f = fantasmes[i].f + df[vk]; /* calcular posicio en la nova dir.*/
-      seg.c = fantasmes[i].c + dc[vk];
-      //pthread_mutex_lock(&mutex);
-      seg.a = win_quincar(seg.f,seg.c);	/* calcular caracter seguent posicio */
-      //pthread_mutex_unlock(&mutex);
-      if ((seg.a==' ') || (seg.a=='.') || (seg.a=='0'))
-      { 
-        vd[nd] = vk;			/* memoritza com a direccio possible */
-        nd++;
-      }
-    }
-    if (nd == 0)				/* si no pot continuar, */
-    {
-      fantasmes[i].d = (fantasmes[i].d + 2) % 4;		/* canvia totalment de sentit */
-    }
-    else
-    { 
-      if (nd == 1)			/* si nomes pot en una direccio */
-      {
-        fantasmes[i].d = vd[0];			/* li assigna aquesta */
-      }
-      else				/* altrament */
-      {
-        fantasmes[i].d = vd[rand() % nd];		/* segueix una dir. aleatoria */
-      }
-
-      seg.f = fantasmes[i].f + df[fantasmes[i].d];  /* calcular seguent posicio final */
-      seg.c = fantasmes[i].c + dc[fantasmes[i].d];
-      //pthread_mutex_lock(&mutex);
-      seg.a = win_quincar(seg.f,seg.c);	/* calcular caracter seguent posicio */
-      if ((seg.a==' ') || (seg.a=='.') || (seg.a=='0'))
-      {
-        win_escricar(fantasmes[i].f,fantasmes[i].c,fantasmes[i].a,NO_INV);	/* esborra posicio anterior */
-        fantasmes[i].f = seg.f; fantasmes[i].c = seg.c; fantasmes[i].a = seg.a;	/* actualitza posicio */
-        win_escricar(fantasmes[i].f,fantasmes[i].c,i+1+'0',NO_INV);		/* redibuixa fantasma */
-        //pthread_mutex_unlock(&mutex);
-        //pthread_mutex_lock(&mutex);
-        if (fantasmes[i].a == '0') 
-        {
-          fi2 = 1;		/* ha capturat menjacocos */
-        }
-        //pthread_mutex_unlock(&mutex);
-      }else{
-        //pthread_mutex_unlock(&mutex);
-      }
-    }
-    win_retard(retard*fantasmes[i].r);
-  } while (!fi1 && !fi2);
-
-  
-  //return(ret);
 }
 
 
@@ -343,7 +258,7 @@ void * mou_menjacocos(void * null)
         case TEC_ESQUER:  mc.d = 1; break;
         case TEC_AVALL:	  mc.d = 2; break;
         case TEC_DRETA:	  mc.d = 3; break;
-        case TEC_RETURN:  fi1 = -1; break;
+        case TEC_RETURN:  *fi1 = -1; break;
       }
     }
 
@@ -363,7 +278,7 @@ void * mou_menjacocos(void * null)
         cocos--;
         if (cocos == 0) 
         {
-          fi1 = 1;
+          *fi1 = 1;
         }
         //pthread_mutex_unlock(&mutex);
       }
@@ -371,7 +286,7 @@ void * mou_menjacocos(void * null)
       //pthread_mutex_unlock(&mutex);
     }
     win_retard(retard*mc.r);
-  } while (!fi1 && !fi2);
+  } while (!*fi1 && !*fi2);
   //return(ret);
 }
 
@@ -384,9 +299,9 @@ void * mou_menjacocos(void * null)
 /* programa principal				    */
 int main(int n_args, const char *ll_args[])
 {
-  int rc, n, t_seg, min, seg;		/* variables locals */
-  int id_win,t;
-  char a1[20],a2[20],a3[20],a4[20],a5[10],a6[10],a7[10],a8[10],a9[10],a_fi1[10],a_fi2[10];
+  int rc, n, t_seg, min, seg, status;		/* variables locals */
+  int id_win,id_fi1,id_fi2,t;
+  char a1[20],a2[20],a3[20],a4[20],a5[10],a6[10],a7[10],a8[10],a9[10],a10[10],a_fi1[10],a_fi2[10];
   void *p_win;
 
   srand(getpid());		/* inicialitza numeros aleatoris */
@@ -403,12 +318,17 @@ int main(int n_args, const char *ll_args[])
 
   rc = win_ini(&n_fil1,&n_col,'+',INVERS);	/* intenta crear taulell */
   //printf("%d", &rc);
-
   id_win = ini_mem(rc);	/* crear zona mem. compartida */
   p_win = map_mem(id_win);	/* obtenir adres. de mem. compartida */
   sprintf(a4,"%i",id_win);
   sprintf(a5,"%i",n_fil1);	/* convertir mides camp en string */
   sprintf(a6,"%i",n_col);
+
+  id_fi1 = ini_mem(sizeof(int));	/* crear zona mem. compartida */
+  fi1 = map_mem(id_fi1);	/* obtenir adres. de mem. compartida */
+
+  id_fi2 = ini_mem(sizeof(int));	/* crear zona mem. compartida */
+  fi2 = map_mem(id_fi2);	/* obtenir adres. de mem. compartida */
 
   if (rc >= 0)		/* si aconsegueix accedir a l'entorn CURSES */
   {
@@ -417,8 +337,7 @@ int main(int n_args, const char *ll_args[])
     win_update();
     //pthread_mutex_init(&mutex, NULL); /* inicialitza el semafor */
     n = 0;
-    if(pthread_create(&tid[n], NULL, mou_menjacocos, NULL) == 0)    //MIRAR
-      n++;
+    if(pthread_create(&tid[n], NULL, mou_menjacocos, NULL) != 0) exit(0);    //MIRAR
 
     for ( int i = 0; i < total_fantasmes; i++){
       tpid[n] = fork(); /* crea un nou proces */
@@ -426,13 +345,14 @@ int main(int n_args, const char *ll_args[])
       {
         sprintf(a1,"%i",(i+1));
         sprintf(a2,"%i",retard);
-        sprintf(a3,"%f",fantasmes[n].r);
-        sprintf(a7,"%i",fantasmes[n].f);
-        sprintf(a8,"%i",fantasmes[n].c);
-        sprintf(a9,"%i",fantasmes[n].d);
-        sprintf(a_fi1,"%i",fi1);
-        sprintf(a_fi2,"%i",fi2);
-        execlp("./fantasma3", "fantasma3", a1, a2, a4, a5, a6, a7, a8, a9, fantasmes[n].a, a3, a_fi1, a_fi2, (char *)0);
+        sprintf(a3,"%f",fantasmes[i].r);
+        sprintf(a7,"%i",fantasmes[i].f);
+        sprintf(a8,"%i",fantasmes[i].c);
+        sprintf(a9,"%i",fantasmes[i].d);
+        sprintf(a10,"%i",fantasmes[i].a);
+        sprintf(a_fi1,"%i",id_fi1);
+        sprintf(a_fi2,"%i",id_fi2);
+        execlp("./fantasma3", "fantasma3", a1, a2, a4, a5, a6, a7, a8, a9, a10, a3, a_fi1, a_fi2, (char *)0);
         fprintf(stderr,"error: no puc executar el process fill \'fantasma3\'\n");
         exit(0);
       }else if (tpid[n] > 0) n++; /* branca del pare */
@@ -448,38 +368,37 @@ int main(int n_args, const char *ll_args[])
 
     do			/********** bucle principal del joc **********/
     { 
-      win_retard(1000);
-      win_update();
+      win_retard(retard);
 	    seg=seg+1;
       min=seg/60;
       t_seg=seg%60;
       //pthread_mutex_lock(&mutex);
       sprintf(strin,
-          "%d:%2.d, Cocos: %d\n",
+          "%02d:%02d, Cocos: %d\n",
           min,t_seg,cocos);
       win_escristr(strin);	
       //pthread_mutex_unlock(&mutex);
-      
-    } while (!fi1 && !fi2);
+      win_update();
+    } while (!*fi1 && !*fi2);
 
     for (int i = 0; i < n; i++)
     {
       waitpid(tpid[i],&t,NULL); /* espera finalitzacio d'un fill */
     }
     
-    /*for (int i=0;i<=n;i++){
-      pthread_join(tid[i], (void **) &status);
-    }*/
+    pthread_join(tid[0], (void **) &status);
 
     //pthread_mutex_destroy(&mutex); /* destrueix el semafor */
 
     win_fi();
+    elim_mem(id_win);
+	  elim_mem(id_fi1);
+	  elim_mem(id_fi2);
 
-    
-    if (fi1 == -1) printf("S'ha aturat el joc amb tecla RETURN!\n");
+    if (*fi1 == -1) printf("S'ha aturat el joc amb tecla RETURN!\n");
     else 
     { 
-      if (fi1) printf("Ha guanyat l'usuari!\n");
+      if (*fi1) printf("Ha guanyat l'usuari!\n");
 	    else printf("Ha guanyat l'ordinador!\n"); 
     }
   }

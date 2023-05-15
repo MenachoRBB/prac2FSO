@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        "wait.h": "c",
-        "stdint.h": "c",
-        "winsuport2.h": "c",
-        "memoria.h": "c",
-        "pthread.h": "c"
-    }
-}
