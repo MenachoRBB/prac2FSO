@@ -355,7 +355,7 @@ void * mou_menjacocos(void * null)
       {
         pthread_mutex_lock(&mutex);
         cocos--;
-        if (cocos == 1) //Error continuava el joc amb 0 cocos, per això l'1 
+        if (cocos == 0) 
         {
           fi1 = 1;
         }
@@ -423,7 +423,7 @@ int main(int n_args, const char *ll_args[])
       pthread_mutex_lock(&mutex);
       sprintf(strin,
           "%02d:%02d, Cocos: %d\n",
-          min,t_seg,cocos-1); //Error continuava el joc, per això el -1
+          min,t_seg,cocos); //Error continuava el joc, per això el -1
       win_escristr(strin);	
       pthread_mutex_unlock(&mutex);
     } while (!fi1 && !fi2);
