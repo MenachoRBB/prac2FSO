@@ -102,7 +102,7 @@ int retard;		    /* valor del retard de moviment, en mil.lisegons */
 int num_choques_pared = 0; /* valor veces que el comecocos choca con la pared */
 char strin[LONGMISS];			/* variable per a generar missatges de text */
 
-//pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; /* crea un sem. Global*/
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; /* crea un sem. Global*/
 
 
 
@@ -249,9 +249,9 @@ void * mou_menjacocos(void * null)
   //ret = 0;
   do
   {
-    //pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&mutex);
     tec = win_gettec();
-    //pthread_mutex_unlock(&mutex);
+    pthread_mutex_unlock(&mutex);
     if (tec != 0)
     {
       switch (tec)		/* modificar direccio menjacocos segons tecla */
@@ -266,27 +266,27 @@ void * mou_menjacocos(void * null)
 
     seg.f = mc.f + df[mc.d];	/* calcular seguent posicio */
     seg.c = mc.c + dc[mc.d];
-    //pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&mutex);
     seg.a = win_quincar(seg.f,seg.c);	/* calcular caracter seguent posicio */
     if ((seg.a == ' ') || (seg.a == '.'))
     {
       win_escricar(mc.f,mc.c,' ',NO_INV);		/* esborra posicio anterior */
       mc.f = seg.f; mc.c = seg.c;			/* actualitza posicio */
       win_escricar(mc.f,mc.c,'0',NO_INV);		/* redibuixa menjacocos */
-      //pthread_mutex_unlock(&mutex);
+      pthread_mutex_unlock(&mutex);
       if (seg.a == '.')
       {
-        //pthread_mutex_lock(&mutex);
+        pthread_mutex_lock(&mutex);
         cocos--;
         if (cocos == 0) 
         {
           *fi1 = 1;
         }
-        //pthread_mutex_unlock(&mutex);
+        pthread_mutex_unlock(&mutex);
       }
     }else if (seg.a == '+'){
       num_choques_pared++;
-      //pthread_mutex_unlock(&mutex);
+      pthread_mutex_unlock(&mutex);
     }
     win_retard(retard*mc.r);
   } while (!*fi1 && !*fi2);
@@ -345,7 +345,7 @@ int main(int n_args, const char *ll_args[])
     win_set(p_win, n_fil1, n_col);
     inicialitza_joc();
     win_update();
-    //pthread_mutex_init(&mutex, NULL); /* inicialitza el semafor */
+    pthread_mutex_init(&mutex, NULL); /* inicialitza el semafor */
     n = 0;
     if(pthread_create(&tid[n], NULL, mou_menjacocos, NULL) != 0) exit(0);    //MIRAR
 
@@ -385,10 +385,12 @@ int main(int n_args, const char *ll_args[])
       win_escristr(strin);	
       //pthread_mutex_unlock(&mutex);
       while(i < MAX_GHOSTS && i < total_fantasmes){
-        if(num_choques_pared == 2){
+        if(num_choques_pared % 2 == 0){
           tpid[n] = fork(); 
           if (tpid[n] == (pid_t) 0) 
           {
+            pthread_mutex_lock(&mutex);
+            pthread_mutex_lock(&mutex);
             sprintf(a1,"%i",(i+1));
             sprintf(a2,"%i",retard);
             sprintf(a3,"%f",fantasmes[i].r);
@@ -400,7 +402,6 @@ int main(int n_args, const char *ll_args[])
             sprintf(a_fi2,"%i",id_fi2);
             execlp("./fantasma4", "fantasma4", a1, a2, a4, a5, a6, a7, a8, a9, a10, a3, a_fi1, a_fi2, a_id_bustia, a_id_sem, (char *)0);
             fprintf(stderr,"error: no puc executar el process fill \'fantasma4\'\n");
-            num_choques_pared = 0;
             exit(0);
           }else if (tpid[n] > 0) n++; 
           i++;
@@ -416,7 +417,7 @@ int main(int n_args, const char *ll_args[])
     
     pthread_join(tid[0], (void **) &status);
 
-    //pthread_mutex_destroy(&mutex); /* destrueix el semafor */
+    pthread_mutex_destroy(&mutex); /* destrueix el semafor */
 
     win_fi();
     elim_mis(id_bustia);	/* elimina bustia */
